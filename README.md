@@ -11,19 +11,19 @@
 <div align="center">
 
 ### 🏠 Home Page
-![Home Page](./uploadFile2.png)
+![Home Page](./uploadFile.png)
 
 ### 📊 SignUp
-![SignUp](./uploadFile2.png)
+![SignUp](./signup.png)
 
 ### 📁 Login
-![Login](./uploadFile2.png)
+![Login](./login.png)
 
 ### 🏠 Upload & DownLoad file
 ![Upload &Download File](./uploadFile2.png)
 
 ### Share File
-![Share File](./uploadFile2.png)
+![Share File](./sharefile.png)
 
 </div>
 
