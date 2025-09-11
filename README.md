@@ -65,8 +65,8 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/username/repository-name.git
-   cd repository-name
+   git clone https://github.com/priyanshu026922/CloudIt.git
+   cd CloudIT
    ```
 
 2. **Install backend dependencies**
@@ -107,7 +107,7 @@
    Start frontend (in new terminal):
    ```bash
    cd client
-   npm start
+   npm run dev
    ```
 
 6. **Access the application**
