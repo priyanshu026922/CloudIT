@@ -11,19 +11,19 @@
 <div align="center">
 
 ### 🏠 Home Page
-![Home Page](https://via.placeholder.com/800x450?text=Home+Page+Screenshot)
+![Home Page](./uploadFile2.png)
 
 ### 📊 SignUp
-![SignUp](https://via.placeholder.com/800x450?text=Dashboard+Screenshot)
+![SignUp](./uploadFile2.png)
 
 ### 📁 Login
-![Login](https://via.placeholder.com/800x450?text=File+Management+Screenshot)
+![Login](./uploadFile2.png)
 
 ### 🏠 Upload & DownLoad file
-![Upload &Download File](https://via.placeholder.com/800x450?text=Home+Page+Screenshot)
+![Upload &Download File](./uploadFile2.png)
 
 ### Share File
-![Share File](https://via.placeholder.com/800x450?text=Home+Page+Screenshot)
+![Share File](./uploadFile2.png)
 
 </div>
 
