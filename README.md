@@ -1,7 +1,7 @@
 
 <div align="center">
 
-# CloudIt - A Cloud Based File Sharing Application
+# CloudIT - A Cloud Based File Sharing Application
 
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)
