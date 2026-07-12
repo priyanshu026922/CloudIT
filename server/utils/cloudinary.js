@@ -19,7 +19,7 @@ const uploadOnCloudinary  = async (localfilepath) => {
         }
 
             const res = await cloudinary.uploader.upload(localfilepath, {
-                resource_type : 'auto'
+                resource_type : 'auto'//automatically detects the file type---ZIP,VIDEO,PDF
             })
             console.log("file uploaded on cloudinary",res.url);
             return res;

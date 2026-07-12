@@ -1,13 +1,38 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { FaRegCopy } from "react-icons/fa";
+
+import FileSearch from './FileSearch';
+import NotificationBell from './NotificationBell';
 
 const UploadDownload = () => {
   const [downloadLink, setDownloadLink] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const location = useLocation();
+  const [copied, setCopied] = useState(false);
+  const [user, setuser] = useState(null);
 
-  const userId = location.state?.userId;
+  const copyUserId = async () => {
+    await navigator.clipboard.writeText(user._id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const res = await fetch('http://localhost:8000/api/v1/users/me', {
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setuser(data.data);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   const handleUploadClick = () => {
     navigate('/upload');
@@ -51,21 +76,59 @@ const UploadDownload = () => {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 p-4">
-      
+
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-32 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-white/10 rounded-full blur-3xl"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
       </div>
 
-      {userId && (
-        <div className="absolute top-6 right-6 bg-white/20 backdrop-blur-md text-white font-mono text-sm px-4 py-2 rounded-full shadow-lg border border-white/20">
-          <span className="opacity-80">UserID:</span> <span className="font-semibold">{userId}</span>
+      {user && (
+        <div className="absolute top-6 right-6 flex items-start gap-3 z-20">
+          <div className="bg-white/20 backdrop-blur-md rounded-xl shadow-lg border border-white/20 p-2">
+            <NotificationBell />
+          </div>
+
+          <div className="bg-white/20 backdrop-blur-md text-white text-sm px-5 py-4 rounded-xl shadow-lg border border-white/20 flex flex-col gap-2">
+            <div className="mb-2">
+              <span className="opacity-80 font-medium">User ID:</span>
+
+              <div className="flex items-center gap-2 mt-1">
+                <p className="font-mono break-all text-sm flex-1">
+                  {user._id}
+                </p>
+
+                <button
+                  onClick={copyUserId}
+                  className="p-1 rounded-md hover:bg-white/20 transition"
+                  title="Copy User ID"
+                >
+                  <FaRegCopy size={16} />
+                </button>
+              </div>
+
+              {copied && (
+                <p className="text-green-200 text-xs mt-1">
+                  ✓ Copied!
+                </p>
+              )}
+            </div>
+
+            <div>
+              <span className="opacity-80">Name:</span>
+              <div className="font-semibold">{user.name}</div>
+            </div>
+
+            <div>
+              <span className="opacity-80">Email:</span>
+              <div className="font-semibold">{user.email}</div>
+            </div>
+          </div>
         </div>
       )}
 
       <div className="relative bg-white/95 backdrop-blur-sm w-full max-w-lg rounded-3xl shadow-2xl p-10 space-y-10 border border-white/20">
-       
+
         <div className="text-center space-y-6">
           <div className="space-y-3">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl mb-4 shadow-lg">
@@ -83,6 +146,23 @@ const UploadDownload = () => {
             Upload File
           </button>
         </div>
+
+        {/* Search your uploaded files
+        <div className="relative py-4">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white px-6 py-2 text-gray-500 font-medium text-sm rounded-full border border-gray-200 shadow-sm">
+              YOUR FILES
+            </span>
+          </div>
+        </div>
+
+        <div className="text-center space-y-4">
+          <FileSearch />
+        </div>
+
         <div className="relative py-4">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-gray-200" />
@@ -92,7 +172,7 @@ const UploadDownload = () => {
               OR
             </span>
           </div>
-        </div>
+        </div> */}
 
         <div className="text-center space-y-6">
           <div className="space-y-3">
@@ -104,7 +184,7 @@ const UploadDownload = () => {
             <h2 className="text-3xl font-bold text-gray-800">Download a File</h2>
             <p className="text-gray-600 text-lg">Paste a shared link below to download the file instantly.</p>
           </div>
-          
+
           <form onSubmit={handleDownloadClick} className="space-y-5">
             <div className="relative">
               <label htmlFor="download-link" className="block text-sm font-semibold text-gray-700 mb-2 text-left">
@@ -119,19 +199,19 @@ const UploadDownload = () => {
                   type="url"
                   value={downloadLink}
                   onChange={(e) => setDownloadLink(e.target.value)}
-                  placeholder="https://yourapp.com/share/..."
+                  placeholder="https://app.com/share/..."
                   className="w-full pl-10 pr-4 py-4 border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-transparent outline-none transition-all duration-200 bg-gray-50/50 hover:bg-white focus:bg-white text-lg"
                   required
                 />
               </div>
             </div>
-            
+
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4">
                 <p className="text-red-600 text-sm font-medium">{error}</p>
               </div>
             )}
-            
+
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white py-4 rounded-xl font-semibold text-lg hover:from-cyan-700 hover:to-blue-700 focus:ring-4 focus:ring-cyan-500/25 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0"
@@ -145,4 +225,4 @@ const UploadDownload = () => {
   );
 };
 
-export default UploadDownload; 
+export default UploadDownload;

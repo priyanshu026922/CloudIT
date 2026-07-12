@@ -1,4 +1,4 @@
-# CloudIt - A Brief Description 🚀
+# CloudIt - A Cloud Based File Sharing Application
 
 <div align="center">
 
@@ -6,20 +6,20 @@
 
 ---
 
-## 📱 Screenshots
+## Project WorkFlow
 
 <div align="center">
 
-### 🏠 Home Page
+### Home Page
 ![Home Page](./uploadFile.png)
 
-### 📊 SignUp
+### SignUp
 ![SignUp](./signup.png)
 
-### 📁 Login
+### Login
 ![Login](./login.png)
 
-### 🏠 Upload & DownLoad file
+### Upload & DownLoad file
 ![Upload &Download File](./uploadFile2.png)
 
 ### Share File
@@ -27,19 +27,19 @@
 
 </div>
 
-## 🎯 About
+## About
 
 **CloudIt** is a secure file sharing platform that allows users to upload, share, and manage files with ease. Built with modern web technologies, it provides a clean interface and robust functionality for file management.
 
-## ✨ Features
+##  Features
 
-- 🔐 **User Authentication** - Secure registration and login with JWT
-- 📁 **File Upload** - Upload files securely  
-- 🔗 **File Sharing** - Generate shareable links for easy access
-- 👥 **Access Control** - Manage who can view and download files
-- ☁️ **Cloud Storage** - Files stored securely on Cloudinary
-- 📱 **Responsive Design** - Works seamlessly on all devices
-- ⚡ **Fast Performance** - Optimized for speed and efficiency
+- **User Authentication** - Secure registration and login with JWT
+- **File Upload** - Upload files securely  
+- **File Sharing** - Generate shareable links for easy access
+- **Access Control** - Manage who can view and download files
+- **Cloud Storage** - Files stored securely on Cloudinary
+- **Responsive Design** - Works seamlessly on all devices
+- **Fast Performance** - Optimized for speed and efficiency
 
 ## 🛠 Tech Stack
 
@@ -60,7 +60,7 @@
 **File Storage:**
 - Cloudinary
 
-## 🚀 Getting Started
+## Getting Started
 ### Installation
 
 1. **Clone the repository**

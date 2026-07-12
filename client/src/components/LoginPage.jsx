@@ -1,35 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { setRateLimited as saveRateLimit, getRateLimitSecondsLeft, clearRateLimit } from '../services/rateLimit.js';
+// ↑ renamed import to saveRateLimit to avoid clash with useState setter below
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);   // ← was missing, caused crash
   const navigate = useNavigate();
 
+  const isRateLimited = countdown > 0;  // ← derived, no separate useState needed
+
+  // ── start ticking ──────────────────────────────────────────
+  const startCountdown = () => {
+    const interval = setInterval(() => {
+      const left = getRateLimitSecondsLeft();
+      setCountdown(left);
+      if (left <= 0) {
+        clearInterval(interval);
+        clearRateLimit();
+        setCountdown(0);
+      }
+    }, 1000);
+  };
+
+  // ── on mount: resume if still rate limited ─────────────────
+  useEffect(() => {
+    const secondsLeft = getRateLimitSecondsLeft();
+    if (secondsLeft > 0) {
+      setCountdown(secondsLeft);
+      startCountdown();
+    }
+  }, []);
+
+  // ── block navbar clicks while rate limited ─────────────────
+  useEffect(() => {
+    if (!isRateLimited) return;
+
+    const handleClick = (e) => {
+      const link = e.target.closest('a, button');
+      if (!link) return;
+      const href = link.getAttribute('href') || '';
+      if (href === '/login' || href === '/register') return;
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, [isRateLimited]);
+
+  // ── login handler ──────────────────────────────────────────
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/users/login', { 
-      
+      const response = await fetch('http://localhost:8000/api/v1/users/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
         credentials: 'include',
       });
 
+      if (response.status === 429) {
+        saveRateLimit();    
+        setCountdown(30);    
+        startCountdown();
+        return;
+      }
+
       if (response.ok) {
         const res = await response.json();
-        console.log(res.data.user._id);
-        navigate('/home' , { state: { userId: res.data.user._id } }); // Navigate to upload or another appropriate page
+        localStorage.setItem("isLoggedIn", "true");
+        navigate('/home', { state: { userId: res.data.user._id } });
       } else {
         setError('Invalid email or password.');
       }
     } catch (err) {
+      console.error("FETCH ERROR:", err);
       setError('Server error. Try again later.');
     } finally {
       setLoading(false);
@@ -38,21 +90,33 @@ const LoginPage = () => {
 
   return (
     <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+
+      {/* Rate limit banner — RateLimitGuard also shows this globally */}
+      {isRateLimited && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white px-6 py-4 flex items-center gap-3 shadow-lg">
+          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z"/>
+          </svg>
+          <span className="font-semibold">
+            Too many attempts. Try again in <strong>{countdown}s</strong> — navigation disabled.
+          </span>
+        </div>
+      )}
+
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-32 h-32 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-2xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-gradient-to-br from-indigo-200/30 to-pink-200/30 rounded-full blur-2xl animate-pulse" style={{animationDelay: '1s'}}></div>
       </div>
 
       <div className="bg-white/90 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-white/50 w-full max-w-md space-y-8 relative z-10 transform hover:scale-[1.02] transition-all duration-300">
-       
         <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-transparent to-purple-50/50 rounded-3xl"></div>
-        
+
         <div className="relative z-10">
           <div className="flex justify-center mb-4">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full blur-lg opacity-30 animate-pulse"></div>
               <div className="relative bg-gradient-to-br from-blue-500 to-purple-600 p-4 rounded-full shadow-lg">
-                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
@@ -70,9 +134,7 @@ const LoginPage = () => {
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
-                Email
-              </label>
+              <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
               <div className="relative">
                 <input
                   id="email"
@@ -80,7 +142,7 @@ const LoginPage = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  disabled={loading}
+                  disabled={loading || isRateLimited}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm hover:shadow-md disabled:bg-gray-50"
                   placeholder="you@example.com"
                 />
@@ -89,9 +151,7 @@ const LoginPage = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
-                Password
-              </label>
+              <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
               <div className="relative">
                 <input
                   id="password"
@@ -99,7 +159,7 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  disabled={loading}
+                  disabled={loading || isRateLimited}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-300 bg-white/80 backdrop-blur-sm hover:shadow-md disabled:bg-gray-50"
                   placeholder="••••••••"
                 />
@@ -108,7 +168,7 @@ const LoginPage = () => {
             </div>
 
             {error && (
-              <div className="p-4 bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-200 rounded-2xl shadow-lg transform animate-in slide-in-from-bottom-4 duration-500">
+              <div className="p-4 bg-gradient-to-br from-red-50 to-pink-50 border-2 border-red-200 rounded-2xl shadow-lg">
                 <div className="flex items-center justify-center mb-2">
                   <div className="bg-red-500 rounded-full p-1">
                     <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,12 +183,16 @@ const LoginPage = () => {
             <div className="relative">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || isRateLimited}
                 className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 disabled:from-gray-400 disabled:to-gray-500 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105 disabled:hover:scale-100 disabled:hover:shadow-lg relative overflow-hidden group"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                
-                {loading ? (
+
+                {isRateLimited ? (
+                  <span className="relative z-10 flex items-center">
+                   Locked-wait {countdown}s
+                  </span>
+                ) : loading ? (
                   <>
                     <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -151,8 +215,8 @@ const LoginPage = () => {
           <div className="text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{' '}
-              <Link 
-                to="/register" 
+              <Link
+                to="/register"
                 className="font-semibold text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text hover:from-blue-700 hover:to-purple-700 transition-all duration-300 hover:underline decoration-2 underline-offset-2"
               >
                 Register here

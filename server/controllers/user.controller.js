@@ -4,6 +4,9 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js'; 
 import jwt from 'jsonwebtoken'
 import {File} from '../models/file.model.js'
+import redis from '../config/redis.js' 
+
+const REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60;
 
 const generateAccessAndRefreshToken = async (userId) => {
     
@@ -11,28 +14,34 @@ const generateAccessAndRefreshToken = async (userId) => {
         const user = await User.findById(userId);
 
         const accessToken = user.generateAccessToken();
-        const refreshToken = user.generateRefreshToken();
+        const refreshToken = user.generateRefreshToken(); //Used to generate a NEW access token
+        
 
-        user.refreshToken = refreshToken;
-        await user.save({validateBeforeSave : false});
+        await redis.set(`rt:${userId}`, refreshToken,"EX",REFRESH_TOKEN_EXPIRY);
 
         return {accessToken,refreshToken};
 
     } catch (error) {
+        console.error("EXACT ERROR:", error.message);  // ADD THIS LINE
+        console.error("STACK:", error.stack);    
         throw new ApiError(500,"Something went wrong while generateAccessAndRefreshToken");
     }
 }
- 
+
+
+
 const registerUser = asyncHandler(async (req,res) => {
 
     const {name,email,password} = req.body;
 
+    //Checks if any field is empty or blank
     if([name,email,password].some((feild) => {
         return (feild?.trim() === "")
     }))
     {
         throw new ApiError(400,"All feilds are required")
     }
+
 
     const existingUser = await User.findOne({
         email
@@ -48,7 +57,8 @@ const registerUser = asyncHandler(async (req,res) => {
         email,
         password,
     });
-
+  
+    //Excludes password and refreshToken from response.....
     const createdUser = await User.findById(user._id).
     select("-password -refreshToken");
 
@@ -60,47 +70,44 @@ const registerUser = asyncHandler(async (req,res) => {
     return res.status(201).json(new ApiResponse(201,{ user: createdUser}, "User registered successfully"));
 })
 
+
+
+
 const loginUser = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
-    // Input validation
     if (!email || !password) {
-        throw new ApiError(400, "Email and password both are required"); // 400 instead of 401
+        throw new ApiError(400, "Email and password both are required");
     }
 
-    // Validate email format (optional but good practice)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
     if (!emailRegex.test(email)) {
         throw new ApiError(400, "Please provide a valid email address");
     }
 
-    // Find user by email
     const user = await User.findOne({ email });
 
     if (!user) {
-        throw new ApiError(401, "Invalid email or password"); // Don't reveal if email exists
+        throw new ApiError(401, "Invalid email or password"); 
     }
 
-    // Check password
     const isPasswordValid = await user.isPasswordCorrect(password);
 
     if (!isPasswordValid) {
-        throw new ApiError(401, "Invalid email or password"); // Same message for security
+        throw new ApiError(401, "Invalid email or password"); 
     }
 
     try {
-        // Generate tokens
         const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
-        // Get user without sensitive data
         const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
-        // Cookie options - adjust based on environment
         const options = {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production", // Only secure in production
+            secure: process.env.NODE_ENV === "production", 
             sameSite: process.env.NODE_ENV === "production" ? "None" : "Lax",
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+            maxAge: 7 * 24 * 60 * 60 * 1000, 
         };
 
         return res
@@ -120,22 +127,22 @@ const loginUser = asyncHandler(async (req, res) => {
             );
 
     } catch (error) {
-        console.error("Token generation error:", error);
+        
         throw new ApiError(500, "Something went wrong while generating tokens");
     }
 });
+
+
+const getUser=asyncHandler(async(req,res)=>{
+    return res.status(200).json({
+        success:true,
+        data:req.user
+    });
+});
+
 const logoutUser = asyncHandler(async (req,res) => {
 
-     await User.findByIdAndUpdate(
-        req.user._id,
-        {
-            $set: {
-                refreshToken : undefined
-            }
-        },
-        {
-           new : true
-        });
+      await redis.del(`rt:${req.user._id}`);
 
     const options = {
         httpOnly : true,
@@ -162,22 +169,28 @@ const updateAccessToken = asyncHandler(async (req,res) => {
             incomingRefreshToken,
             process.env.REFRESH_TOKEN_SECRET
         )
-    
-        const user = await User.findById(decodedToken?._id);
-    
-        if(!user)
-        {
-            throw new ApiError(401,"Invalid refresh token");
+        
+        const storedToken=await redis.get(`rt:${decodedToken._id}`);
+
+
+        if (!storedToken) {
+            throw new ApiError(401, "Refresh token expired or user logged out");
         }
-    
-        if(incomingRefreshToken !== user?.refreshToken)
-        {
-            throw new ApiError(401,"Refresh token is expired or used");
+        
+
+        if (storedToken !== incomingRefreshToken) {
+            throw new ApiError(401, "Refresh token is expired or used");
         }
-    
+
+        const user = await User.findById(decodedToken._id);
+        if (!user) {
+            throw new ApiError(401, "User not found");
+        }
+
+
         const options = {
-            httpOnly : true,
-            secure : true,
+              httpOnly : true,
+              secure : true,
               sameSite: "None",
         }
     
@@ -193,10 +206,21 @@ const updateAccessToken = asyncHandler(async (req,res) => {
     }
 })
 
+
 const getAllFiles = asyncHandler(async (req,res) => {
-    const userId = req.user._id;
+    const userId = req.user._id.toString();
+    const cacheKey=`files:${userId}`;
+
+    const cached=await redis.get(cacheKey);
+    if(cached){
+        return res.status(200).json(
+            new ApiResponse(200,JSON.parse(cached),"Files found successfully")
+        );
+    }
 
     const files = await File.find({ownerId : userId}).sort({createdAt : -1});
+
+    await redis.set(cacheKey, JSON.stringify(files), "EX", 300);
 
     return res.status(200).json(
         new ApiResponse(200,files,"Files found successfully")
@@ -209,5 +233,6 @@ export {
     loginUser,
     logoutUser,
     updateAccessToken,
-    getAllFiles
+    getAllFiles,
+    getUser
 }
