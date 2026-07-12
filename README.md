@@ -1,9 +1,18 @@
-# CloudIt - A Cloud Based File Sharing Application
 
 <div align="center">
 
-**Secure file uploads, expiring share links, and instant delivery .**
+# CloudIt - A Cloud Based File Sharing Application
 
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=for-the-badge&logo=cloudinary&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=JSON%20web%20tokens)
+ 
 </div>
 
 
@@ -64,15 +73,15 @@ sequenceDiagram
 
 ## Features
 
-- **User Authentication** — JWT-based auth with HTTP-only cookies (access + refresh token flow)
-- **File Upload** — Secure upload to Cloudinary 
-- **Expiring Share Links** — Redis TTL-backed tokens,auto-expire in exactly 20 minutes.
-- **Dual-Channel Sharing** — Recipient gets an email always, plus an in-app notification if they're a registered CloudIt user
-- **In-App Notifications** — Bell icon with live unread count, polling every 30s
-- **File Search** — Debounced search-by-filename, scoped to the logged-in owner
-- **Access Control** — Per-file access list in addition to owner-only actions (share, delete)
-- **Caching** — Cache-aside pattern for file metadata and user file lists (Redis)
-- **Responsive Design** — Tailwind CSS, works across screen sizes
+- **User Authentication** - JWT-based auth with HTTP-only cookies (access + refresh token flow)
+- **File Upload** - Secure upload to Cloudinary 
+- **Expiring Share Links** - Redis TTL-backed tokens,auto-expire in exactly 20 minutes.
+- **Dual-Channel Sharing** - Recipient gets an email always, plus an in-app notification if they're a registered CloudIt user
+- **In-App Notifications** - Bell icon with live unread count, polling every 30s
+- **File Search** -  Debounced search-by-filename, scoped to the logged-in owner
+- **Access Control** - Per-file access list in addition to owner-only actions (share, delete)
+- **Caching** - Cache-aside pattern for file metadata and user file lists (Redis)
+- **Responsive Design** - Tailwind CSS, works across screen sizes
 
 ---
 
